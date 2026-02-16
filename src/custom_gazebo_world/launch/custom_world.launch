@@ -1,12 +1,19 @@
 <launch>
   <!-- you may need to change your robot spawning position -->
   <arg name="model" default="burger"/>
-  <arg name="x_pos" default="-2.0"/>
-  <arg name="y_pos" default="-0.5"/>
-  <arg name="z_pos" default="0.0"/>
+  <arg name="x_pos" default="2.75"/>
+  <arg name="y_pos" default="-2.75"/>
+  <arg name="z_pos" default="0.25"/>
 
   <!-- Add here lines that will launch Gazebo with your custom Gazebo world. -->
-
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find custom_gazebo_world)/worlds/custom_world.world"/>
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="true"/>
+    <arg name="headless" value="false"/>
+    <arg name="debug" value="false"/>
+  </include>
 
   <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_model)/urdf/turtlebot3_$(arg model).urdf.xacro" />
 
