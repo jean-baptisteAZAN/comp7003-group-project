@@ -6,10 +6,13 @@
 
   <!-- maps -->
   <!-- Add argument to launch your own yaml map here. -->
+  <arg name="map_file" default="$(find custom_gazebo_world)/maps/karto_map.yaml"/>
 
   <!-- rviz -->
   <!-- Add argument to launch your own RViz configuration here.
   Then, call the rviz node with that argument. -->
+  <arg name="rviz_config" default="$(find path_planning)/rviz/karto_map.rviz"/>
+  <node pkg="rviz" name="rviz" type="rviz" args="-d $(arg rviz_config)"/>
 
 
   <!-- Map server -->
@@ -29,6 +32,7 @@
 
   <!-- AMCL -->
   <!-- Add AMCL here, so you can estimate the robot's path on first launch. -->
+  <include file="$(find turtlebot3_navigation)/launch/amcl.launch"/>
 
   <!-- Start service server that responds with a plan for global path planning -->
   <node pkg="path_planning" name="path_planner" type="path_planning.py" output="screen"/> 
