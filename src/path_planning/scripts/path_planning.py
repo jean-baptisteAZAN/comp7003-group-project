@@ -24,7 +24,8 @@ def make_plan(req) -> PathPlanningPluginResponse:
     # side of each grid map square in meters
     resolution = 0.05
     # origin of grid map
-    origin: list[int] = []  # hint: find this in your YAML map file
+    origin: list[int] = [-10.000000, -10.000000, 0.000000]  # hint: find this in your YAML map file
+
 
     grid_visualisation = GridViz(costmap, resolution, origin, start, goal, width)
 

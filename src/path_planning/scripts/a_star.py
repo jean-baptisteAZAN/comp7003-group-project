@@ -2,7 +2,7 @@ from __future__ import annotations
 import math
 from algorithms.neighbors import find_neighbors
 import rospy
-
+from gridviz import GridViz
 
 class Cell:
     def __init__(self, pos: int, g: int, f: int, parent: Cell):
@@ -20,21 +20,37 @@ def euclidean_dist(start, goal, width):
     start_y = start // width
     goal_x = goal % width
     goal_y = goal // width
-    math.sqrt((start_x - goal_x) ** 2 + (start_y - goal_y) ** 2)
+    return math.sqrt((start_x - goal_x) ** 2 + (start_y - goal_y) ** 2)
 
 
 def find_lowest_f(array: list[Cell]):
     minimum = array[0].f
+    min_index = 0
 
     for i in range(len(array)):
         if array[i].f < minimum:
             minimum = array[i].f
+            min_index = i
 
-    return minimum
+    return min_index
 
+
+def get_path(last_cell):
+    path = []
+    path.append(last_cell.pos)
+
+    while last_cell.parent != None:
+        last_cell = last_cell.parent
+        path.append(last_cell.pos)
+
+    path.reverse()
+    rospy.loginfo(path)
+    return path
 
 def a_star(start, goal, width, height, costmap, resolution, origin, grid_visualisation):
     rospy.loginfo("In Astar")
+    rospy.loginfo(start)
+    rospy.loginfo(goal)
     start_cell = Cell(start, 0, 0, None)
     start_cell.update_f(0, euclidean_dist(0, goal, width))
     to_visit = [start_cell]  # array of cells not position
@@ -42,16 +58,21 @@ def a_star(start, goal, width, height, costmap, resolution, origin, grid_visuali
 
     while to_visit:
         current_index = find_lowest_f(to_visit)
-        current = to_visit[current_index]
-        to_visit.pop(current_index)
+        current = to_visit.pop(current_index)
         visited.append(current)
+        grid_visualisation.set_color(current.pos, "pale yellow")
 
         if current.pos == goal:
-            return  # call function to get path by using the parent cells
+            return get_path(current)# call function to get path by using the parent cells
+
+        rospy.loginfo(current.pos)
 
         all_neighbors = find_neighbors(
             current.pos, width, height, costmap, 1
         )  # not sure about the last param
+
+        rospy.loginfo(all_neighbors)
+        
 
         for neighbor in all_neighbors:
             # check if neighbor in visited, if yes, skip (continue)
@@ -78,4 +99,8 @@ def a_star(start, goal, width, height, costmap, resolution, origin, grid_visuali
                 if new_g_score < neighbor_cell.g:
                     neighbor_cell.g = new_g_score
             else:
+                grid_visualisation.set_color(neighbor[0], "orange")
                 neighbor_cell = Cell(neighbor[0], new_g_score, 0, current)
+    rospy.loginfo("END")
+    rospy.loginfo(to_visit)
+    rospy.loginfo(visited)
