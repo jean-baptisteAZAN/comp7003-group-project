@@ -11,9 +11,6 @@ class Cell:
         self.f = f
         self.parent = parent
 
-    def update_f(self, new_g, new_h):
-        self.f = new_g + new_h
-
 
 def euclidean_dist(start, goal, width):
     start_x = start % width
@@ -57,8 +54,7 @@ def a_star(start, goal, width, height, costmap, resolution, origin, grid_visuali
     rospy.loginfo(f"{height=}")
     rospy.loginfo(f"{len(costmap)=}")
     rospy.loginfo(f"{len([cell for cell in costmap if cell <= 150])=}")
-    start_cell = Cell(start, 0, 0, None)
-    start_cell.update_f(0, euclidean_dist(0, goal, width))
+    start_cell = Cell(start, 0, euclidean_dist(0, goal, width), None)
     to_visit = [start_cell]  # array of cells not position
     visited = []
 
@@ -126,6 +122,7 @@ def a_star(start, goal, width, height, costmap, resolution, origin, grid_visuali
             # check if neighbor already in to_visit, if yes, check if g_score is smaller, if yes, update cell
             # if not, create new Cell corresponding to neighbor and add it to to_visit
             new_g_score = current.g + neighbor[1]
+            new_f_score = new_g_score + euclidean_dist(neighbor[0], goal, width)
 
             in_to_visit = 0
             neighbor_cell: Cell = None
@@ -137,12 +134,11 @@ def a_star(start, goal, width, height, costmap, resolution, origin, grid_visuali
             if in_to_visit:
                 if new_g_score < neighbor_cell.g:
                     neighbor_cell.g = new_g_score
-                    neighbor_cell.update_f(new_g_score, euclidean_dist(neighbor[0], goal, width))
+                    neighbor_cell.f = new_f_score
                     neighbor_cell.parent = current
             else:
                 grid_visualisation.set_color(neighbor[0], "orange")
-                neighbor_cell = Cell(neighbor[0], new_g_score, 0, current)
-                neighbor_cell.update_f(new_g_score, euclidean_dist(neighbor[0], goal, width))
+                neighbor_cell = Cell(neighbor[0], new_g_score, new_f_score, current)
                 to_visit.append(neighbor_cell)
                 
     rospy.loginfo("END")
