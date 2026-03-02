@@ -39,7 +39,7 @@ def get_path(last_cell):
     path = []
     path.append(last_cell.pos)
 
-    while last_cell.parent != None:
+    while last_cell.parent is not  None:
         last_cell = last_cell.parent
         path.append(last_cell.pos)
 
@@ -49,12 +49,42 @@ def get_path(last_cell):
 
 def a_star(start, goal, width, height, costmap, resolution, origin, grid_visualisation):
     rospy.loginfo("In Astar")
-    rospy.loginfo(start)
-    rospy.loginfo(goal)
+    rospy.loginfo(f"{start=}")
+    rospy.loginfo(f"{resolution=}")
+    rospy.loginfo(f"{origin=}")
+    rospy.loginfo(f"{goal=}")
+    rospy.loginfo(f"{width=}")
+    rospy.loginfo(f"{height=}")
+    rospy.loginfo(f"{len(costmap)=}")
+    rospy.loginfo(f"{len([cell for cell in costmap if cell <= 150])=}")
     start_cell = Cell(start, 0, 0, None)
     start_cell.update_f(0, euclidean_dist(0, goal, width))
     to_visit = [start_cell]  # array of cells not position
     visited = []
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    def show_grayscale_image(pixel_list, width, height):
+        """
+        Converts a 1D list of grayscale pixels into a 2D image and displays it.
+        """
+        # 1. Convert the list to a NumPy array
+        pixel_array = np.array(pixel_list, dtype=np.uint8)
+        
+        # 2. Reshape the 1D array into 2D (height, width)
+        # This ensures the pixels wrap correctly to form the rows/columns
+        image_matrix = pixel_array.reshape((height, width))
+        
+        # 3. Use Matplotlib to show the image
+        plt.imshow(image_matrix, cmap='gray', vmin=0, vmax=255)
+        plt.imshow(i)
+        plt.axis('off')  # Hide the X and Y axes
+        plt.show()
+
+    # Example Usage:
+    # pixels = [1, 50, 100, 150, 200, 254, ...] # Needs to be width * height in length
+    show_grayscale_image(costmap, width=width, height=height)
 
     while to_visit:
         current_index = find_lowest_f(to_visit)
@@ -65,13 +95,13 @@ def a_star(start, goal, width, height, costmap, resolution, origin, grid_visuali
         if current.pos == goal:
             return get_path(current)# call function to get path by using the parent cells
 
-        rospy.loginfo(current.pos)
+        rospy.loginfo(f"{current.pos=}")
 
         all_neighbors = find_neighbors(
             current.pos, width, height, costmap, 1
         )  # not sure about the last param
 
-        rospy.loginfo(all_neighbors)
+        rospy.loginfo(f"{all_neighbors=}")
         
 
         for neighbor in all_neighbors:
@@ -102,5 +132,5 @@ def a_star(start, goal, width, height, costmap, resolution, origin, grid_visuali
                 grid_visualisation.set_color(neighbor[0], "orange")
                 neighbor_cell = Cell(neighbor[0], new_g_score, 0, current)
     rospy.loginfo("END")
-    rospy.loginfo(to_visit)
-    rospy.loginfo(visited)
+    rospy.loginfo(f"{to_visit=}")
+    rospy.loginfo(f"{visited=}")
