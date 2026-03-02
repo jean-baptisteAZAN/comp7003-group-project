@@ -62,42 +62,42 @@ def a_star(start, goal, width, height, costmap, resolution, origin, grid_visuali
     to_visit = [start_cell]  # array of cells not position
     visited = []
 
-    import numpy as np
-    import matplotlib.pyplot as plt
+    # import numpy as np
+    # import matplotlib.pyplot as plt
 
-    def show_maze_with_point(pixel_list, width, height, point_index):
-        """
-        Displays the maze and marks a specific index with a red dot.
-        """
-        # 1. Convert list to NumPy array
-        pixel_array = np.array(pixel_list, dtype=np.float32)
+    # def show_maze_with_point(pixel_list, width, height, point_index):
+    #     """
+    #     Displays the maze and marks a specific index with a red dot.
+    #     """
+    #     # 1. Convert list to NumPy array
+    #     pixel_array = np.array(pixel_list, dtype=np.float32)
 
-        # 2. CLEANUP: Fix the 'noise' lines
-        # If -1 (unknown) is becoming white, set it to 127 (gray) or 0 (black)
-        pixel_array[pixel_array == -1] = 0 
-        pixel_array[pixel_array == 255] = 0 # Often costmaps use 255 for unknown
+    #     # 2. CLEANUP: Fix the 'noise' lines
+    #     # If -1 (unknown) is becoming white, set it to 127 (gray) or 0 (black)
+    #     pixel_array[pixel_array == -1] = 0 
+    #     pixel_array[pixel_array == 255] = 0 # Often costmaps use 255 for unknown
 
-        # 3. Reshape - MUST be (height, width) to avoid shearing lines
-        image_matrix = pixel_array.reshape((height, width))
+    #     # 3. Reshape - MUST be (height, width) to avoid shearing lines
+    #     image_matrix = pixel_array.reshape((height, width))
 
-        # 4. Calculate X and Y from the 1D index
-        x = point_index % width
-        y = point_index // width
+    #     # 4. Calculate X and Y from the 1D index
+    #     x = point_index % width
+    #     y = point_index // width
 
-        # 5. Plotting
-        plt.figure(figsize=(8, 8))
+    #     # 5. Plotting
+    #     plt.figure(figsize=(8, 8))
         
-        # Use origin='lower' so (0,0) is the bottom-left, matching ROS convention
-        plt.imshow(image_matrix, cmap='gray', origin='lower')
+    #     # Use origin='lower' so (0,0) is the bottom-left, matching ROS convention
+    #     plt.imshow(image_matrix, cmap='gray', origin='lower')
         
-        # Overlay the red point
-        plt.scatter(x, y, color='red', s=50, label=f'Point at {point_index}')
+    #     # Overlay the red point
+    #     plt.scatter(x, y, color='red', s=50, label=f'Point at {point_index}')
         
-        plt.title(f"Maze Visualization ({width}x{height})")
-        plt.legend()
-        plt.axis('on') # Keep axis on to verify coordinates
-        plt.show()
-    show_maze_with_point(costmap, width=width, height=height, point_index=start)
+    #     plt.title(f"Maze Visualization ({width}x{height})")
+    #     plt.legend()
+    #     plt.axis('on') # Keep axis on to verify coordinates
+    #     plt.show()
+    # show_maze_with_point(costmap, width=width, height=height, point_index=start)
 
     while to_visit:
         current_index = find_lowest_f(to_visit)
@@ -108,13 +108,9 @@ def a_star(start, goal, width, height, costmap, resolution, origin, grid_visuali
         if current.pos == goal:
             return get_path(current)# call function to get path by using the parent cells
 
-        rospy.loginfo(f"{current.pos=}")
-
         all_neighbors = find_neighbors(
             current.pos, width, height, costmap, 1
         )  # not sure about the last param
-
-        rospy.loginfo(f"{all_neighbors=}")
         
 
         for neighbor in all_neighbors:
@@ -144,6 +140,8 @@ def a_star(start, goal, width, height, costmap, resolution, origin, grid_visuali
             else:
                 grid_visualisation.set_color(neighbor[0], "orange")
                 neighbor_cell = Cell(neighbor[0], new_g_score, 0, current)
+                to_visit.append(neighbor_cell)
+
     rospy.loginfo("END")
-    rospy.loginfo(f"{to_visit=}")
-    rospy.loginfo(f"{visited=}")
+    rospy.loginfo(f"{len(to_visit)=}")
+    rospy.loginfo(f"{len(visited)=}")
