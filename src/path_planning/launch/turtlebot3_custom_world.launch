@@ -37,4 +37,4 @@
   <!-- Start service server that responds with a plan for global path planning -->
   <node pkg="path_planning" name="path_planner" type="path_planning.py" output="screen"/> 
 
-</launch>
+</launch> 
