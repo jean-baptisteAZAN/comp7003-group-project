@@ -20,14 +20,13 @@ def make_plan(req) -> PathPlanningPluginResponse:
     # number of rows in the occupancy grid
     height: int = req.height
     start: int = req.start
-    goal: int = req.goal
+    # goal: int = req.goal
     # side of each grid map square in meters
     resolution = 0.05
     # origin of grid map
     origin: list[int] = [-3.312564, -3.270421, 0.000000]  # hint: find this in your YAML map file
 
 
-    grid_visualisation = GridViz(costmap, resolution, origin, start, goal, width)
 
     # time statistics
     start_time = rospy.Time.now()
@@ -38,20 +37,32 @@ def make_plan(req) -> PathPlanningPluginResponse:
 	Your code continues here.
 	path = a_star(start, goal, width, height, costmap, resolution, origin, grid_visualisation)
 	"""
+    final_path = []
+    goals = [
+        17506,
+        2222,
+        1791,
+        16999,       
+    ]
 
-    path = a_star(
-        start, goal, width, height, costmap, resolution, origin, grid_visualisation
-    )
+    for goal in goals:
+        if final_path:
+            start = final_path[-1]
+        grid_visualisation = GridViz(costmap, resolution, origin, start, goal, width)
+        path = a_star(
+            start, goal, width, height, costmap, resolution, origin, grid_visualisation
+        )
 
-    if not path:
-        rospy.logwarn("No path returned by the path algorithm")
-        path = []
-    else:
-        # additional code here as per your implementation, e.g., computing/displaying your performance metrics
-        rospy.loginfo("Path sent to navigation stack")
+        if not path:
+            rospy.logwarn("No path returned by the path algorithm")
+            path = []
+        else:
+            # additional code here as per your implementation, e.g., computing/displaying your performance metrics
+            final_path.extend(path)
+            rospy.loginfo("Path sent to navigation stack")
 
     resp = PathPlanningPluginResponse()
-    resp.plan = path
+    resp.plan = final_path
     return resp
 
 
