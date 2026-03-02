@@ -109,7 +109,7 @@ def a_star(start, goal, width, height, costmap, resolution, origin, grid_visuali
             return get_path(current)# call function to get path by using the parent cells
 
         all_neighbors = find_neighbors(
-            current.pos, width, height, costmap, 1
+            current.pos, width, height, costmap, 5
         )  # not sure about the last param
         
 
@@ -137,11 +137,14 @@ def a_star(start, goal, width, height, costmap, resolution, origin, grid_visuali
             if in_to_visit:
                 if new_g_score < neighbor_cell.g:
                     neighbor_cell.g = new_g_score
+                    neighbor_cell.update_f(new_g_score, euclidean_dist(neighbor[0], goal, width))
+                    neighbor_cell.parent = current
             else:
                 grid_visualisation.set_color(neighbor[0], "orange")
                 neighbor_cell = Cell(neighbor[0], new_g_score, 0, current)
+                neighbor_cell.update_f(new_g_score, euclidean_dist(neighbor[0], goal, width))
                 to_visit.append(neighbor_cell)
-
+                
     rospy.loginfo("END")
     rospy.loginfo(f"{len(to_visit)=}")
     rospy.loginfo(f"{len(visited)=}")
