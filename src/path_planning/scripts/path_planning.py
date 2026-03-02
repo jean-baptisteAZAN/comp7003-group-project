@@ -40,7 +40,6 @@ def make_plan(req) -> PathPlanningPluginResponse:
     final_path = []
     goals = [
         17506,
-        
         2222,
         1791,
         16999,       
