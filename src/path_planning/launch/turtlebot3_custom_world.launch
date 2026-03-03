@@ -35,6 +35,10 @@
   <!-- <include file="$(find turtlebot3_navigation)/launch/amcl.launch"/> -->
 
   <!-- Start service server that responds with a plan for global path planning -->
-  <node pkg="path_planning" name="path_planner" type="path_planning.py" output="screen"/> 
+  <!-- algorithm: "standard", "enhanced", or "both" -->
+  <arg name="algorithm" default="standard"/>
+  <node pkg="path_planning" name="path_planner" type="path_planning.py" output="screen">
+    <param name="algorithm" value="$(arg algorithm)"/>
+  </node>
 
 </launch> 
