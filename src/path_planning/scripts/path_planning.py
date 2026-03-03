@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 from a_star import a_star
+from a_star_enhanced import a_star_enhanced
 import math
 import rospy
 import csv
@@ -162,9 +163,22 @@ def make_plan(req) -> PathPlanningPluginResponse:
         16999,
     ]
     init_metrics_csv()
-    algorithms = [
-        ("standard", a_star),
-    ]
+
+    algo_param = rospy.get_param("~algorithm", "standard")
+    available_algorithms = {
+        "standard": ("standard", a_star),
+        "enhanced": ("enhanced", a_star_enhanced),
+    }
+
+    if algo_param == "both":
+        algorithms = [available_algorithms["standard"], available_algorithms["enhanced"]]
+    elif algo_param in available_algorithms:
+        algorithms = [available_algorithms[algo_param]]
+    else:
+        rospy.logwarn("Unknown algorithm '%s', defaulting to standard", algo_param)
+        algorithms = [available_algorithms["standard"]]
+
+    rospy.loginfo("Selected algorithm(s): %s", [a[0] for a in algorithms])
     final_path = []
     for algo_name, algo_func in algorithms:
         rospy.loginfo("=" * 60)
