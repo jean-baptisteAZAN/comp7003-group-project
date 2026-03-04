@@ -36,7 +36,7 @@
     <param name="use_map_topic" value="true" />
   </node>
   <!-- Start service server that responds with a plan for global path planning -->
-  <!-- algorithm: "standard", "enhanced", or "both" -->
+  <!-- algorithm: "standard", "smoothed", or "both" -->
   <arg name="algorithm" default="standard"/>
   <node pkg="path_planning" name="path_planner" type="path_planning.py" output="screen">
     <param name="algorithm" value="$(arg algorithm)"/>

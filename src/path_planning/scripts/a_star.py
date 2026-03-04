@@ -69,7 +69,7 @@ def a_star(start, goal, width, height, costmap, resolution, origin, grid_visuali
 
         all_neighbors = find_neighbors(
             current.pos, width, height, costmap, 5
-        )  # not sure about the last param
+        )
         
 
         for neighbor in all_neighbors:

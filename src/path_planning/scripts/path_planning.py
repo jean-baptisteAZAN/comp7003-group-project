@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 from a_star import a_star
-from a_star_enhanced import a_star_enhanced
+from a_star_smoothed import a_star_smoothed
 import math
 import rospy
 import csv
@@ -206,11 +206,11 @@ def make_plan(req) -> PathPlanningPluginResponse:
     algo_param = rospy.get_param("~algorithm", "standard")
     available_algorithms = {
         "standard": ("standard", a_star),
-        "enhanced": ("enhanced", a_star_enhanced),
+        "smoothed": ("smoothed", a_star_smoothed),
     }
 
     if algo_param == "both":
-        algorithms = [available_algorithms["standard"], available_algorithms["enhanced"]]
+        algorithms = [available_algorithms["standard"], available_algorithms["smoothed"]]
     elif algo_param in available_algorithms:
         algorithms = [available_algorithms[algo_param]]
     else:

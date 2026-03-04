@@ -3,12 +3,12 @@ import math
 from algorithms.neighbors import find_neighbors
 import rospy
 from gridviz import GridViz
-from a_star import *
+from a_star import Cell, find_lowest_f, euclidean_dist,get_path
 
 
 def calculate_angle(current : Cell, neighbor_pos : int, width):
     previous = current.parent
-    if previous == None: 
+    if previous is None: 
         return 0
 
     previous_x, previous_y = previous.pos % width, previous.pos // width
