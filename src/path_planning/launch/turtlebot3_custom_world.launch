@@ -17,7 +17,7 @@
 
   <!-- Map server -->
   <node pkg="map_server" name="map_server" type="map_server" args="$(arg map_file)">
-    <param name="frame_id" value="odom" />
+    <param name="frame_id" value="map" />
   </node>
 
   <!-- Static tf between map and odom -->
@@ -32,8 +32,9 @@
 
   <!-- AMCL -->
   <!-- Add AMCL here, so you can estimate the robot's path on first launch. -->
-  <!-- <include file="$(find turtlebot3_navigation)/launch/amcl.launch"/> -->
-
+  <node pkg="amcl" type="amcl" name="amcl" output="screen">
+    <param name="use_map_topic" value="true" />
+  </node>
   <!-- Start service server that responds with a plan for global path planning -->
   <!-- algorithm: "standard", "enhanced", or "both" -->
   <arg name="algorithm" default="standard"/>
