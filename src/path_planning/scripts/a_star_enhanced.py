@@ -6,23 +6,35 @@ from gridviz import GridViz
 from a_star import *
 
 
-def calculate_angle(previous : Cell, current : Cell, neighbor : Cell, width):
-    previous_x, previous_y = previous % width, previous / width
-    current_x, current_y = current % width, current / width
-    neighbor_x, neighbor_y = neighbor % width, neighbor / width
+def calculate_angle(current : Cell, neighbor_pos : int, width):
+    previous = current.parent
+    if previous == None: 
+        return 0
+
+    previous_x, previous_y = previous.pos % width, previous.pos // width
+    current_x, current_y = current.pos % width, current.pos // width
+    neighbor_x, neighbor_y = neighbor_pos % width, neighbor_pos // width
 
     ux, uy = previous_x - current_x, previous_y - current_y
     vx, vy = neighbor_x - current_x, neighbor_y - current_y
 
-    dot = ux*vx + uy*vy
-    
-    norme_u = math.sqrt(ux ** 2 + uy ** 2)
-    norme_v = math.sqrt(vx ** 2 + vy ** 2)
+    dot = ux * vx + uy * vy
+    cross = ux * vy - uy * vx
 
-    ang = math.acos(dot / (norme_u * norme_v))
-    return ang
+    return math.atan2(cross, dot) #for a signed angle
 
-def a_star_enhanced(start, goal, width, height, costmap, resolution, origin, grid_visualisation):
+
+def cost_function(distance, angle):
+    max_linear_velocity = 0.22
+    max_angular_velocity = 2.84
+
+    time_trans = distance / max_linear_velocity
+    time_rot = abs(angle) / max_angular_velocity
+
+    return time_trans + time_rot
+
+
+def a_star_smoothed(start, goal, width, height, costmap, resolution, origin, grid_visualisation):
     rospy.loginfo("In Astar")
     rospy.loginfo(f"{start=}")
     rospy.loginfo(f"{resolution=}")
@@ -63,8 +75,8 @@ def a_star_enhanced(start, goal, width, height, costmap, resolution, origin, gri
 
             # check if neighbor already in to_visit, if yes, check if g_score is smaller, if yes, update cell
             # if not, create new Cell corresponding to neighbor and add it to to_visit
-            penalty = calculate_angle(current.parent.pos, current.pos, neighbor[0], width) / 10
-            new_g_score = current.g + neighbor[1] + penalty
+            angle = calculate_angle(current, neighbor[0], width)
+            new_g_score = current.g + cost_function(neighbor[1], angle) + angle #add travel time as cost + penalty
             new_f_score = new_g_score + euclidean_dist(neighbor[0], goal, width)
 
             in_to_visit = 0
