@@ -3,30 +3,23 @@ from __future__ import annotations
 from a_star import a_star
 from a_star_smoothed import a_star_smoothed
 import math
+import threading
 import rospy
 import csv
 import os
 from pp_msgs.srv import PathPlanningPlugin, PathPlanningPluginResponse
-from geometry_msgs.msg import Twist, PoseWithCovarianceStamped
+from geometry_msgs.msg import Twist
+from nav_msgs.msg import Odometry
 from gridviz import GridViz
+import numpy as np
+import matplotlib.pyplot as plt
 
 # --- Performance metrics CSV setup ---
 METRICS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "metrics")
 METRICS_FILE = os.path.join(METRICS_DIR, "metrics.csv")
 CSV_HEADER = ["algorithm", "segment", "start", "goal", "path_length", "computation_time_s", "execution_time_s"]
 
-# --- Execution time tracking ---
-# Stores goal waypoints as world coords for the current run, populated in make_plan
-execution_tracker = {
-    "goals_world": [],       # [(x, y), ...] goal positions in world frame
-    "algorithm": "",
-    "nav_start_time": None,
-    "current_goal_idx": 0,
-    "arrival_threshold": 0.3,  # meters - robot considered arrived when within this distance
-    "resolution": 0.05,
-    "origin": [0, 0, 0],
-    "width": 0,
-}
+ARRIVAL_THRESHOLD = 0.3  # meters
 
 
 def grid_to_world(grid_index, width, resolution, origin):
@@ -38,36 +31,51 @@ def grid_to_world(grid_index, width, resolution, origin):
     return wx, wy
 
 
-def amcl_pose_callback(msg):
-    """Monitor robot position to detect arrival at each goal waypoint."""
-    tracker = execution_tracker
-    if tracker["nav_start_time"] is None:
-        return
-    if tracker["current_goal_idx"] >= len(tracker["goals_world"]):
-        return
+def get_robot_position():
+    """Get current robot position from /odom (blocking, single message)."""
+    msg = rospy.wait_for_message("/odom", Odometry, timeout=10.0)
+    return msg.pose.pose.position.x, msg.pose.pose.position.y
 
-    robot_x = msg.pose.pose.position.x
-    robot_y = msg.pose.pose.position.y
-    goal_x, goal_y = tracker["goals_world"][tracker["current_goal_idx"]]
 
-    dist = math.sqrt((robot_x - goal_x) ** 2 + (robot_y - goal_y) ** 2)
+def track_execution_times(algo_name, goals, width, resolution, origin):
+    """Run in a separate thread. Waits for the robot to reach each goal and logs execution time."""
+    goals_world = [grid_to_world(g, width, resolution, origin) for g in goals]
+    rate = rospy.Rate(10)
 
-    if dist < tracker["arrival_threshold"]:
-        arrival_time = rospy.Time.now()
-        exec_time = (arrival_time - tracker["nav_start_time"]).to_sec()
-        segment = tracker["current_goal_idx"] + 1
+    for segment_idx, (goal_x, goal_y) in enumerate(goals_world, start=1):
+        t_start = rospy.Time.now()
+        rospy.loginfo("[%s] Segment %d: Waiting for robot to reach goal...", algo_name, segment_idx)
 
-        # Append execution time to the CSV
-        append_execution_time(tracker["algorithm"], segment, exec_time)
+        while not rospy.is_shutdown():
+            robot_x, robot_y = get_robot_position()
+            dist = math.sqrt((robot_x - goal_x) ** 2 + (robot_y - goal_y) ** 2)
+            if dist < ARRIVAL_THRESHOLD:
+                exec_time = (rospy.Time.now() - t_start).to_sec()
+                rospy.loginfo(
+                    "[%s] Segment %d: Robot arrived | execution_time=%.2fs",
+                    algo_name, segment_idx, exec_time
+                )
+                # Update the CSV row for this segment
+                update_execution_time_in_csv(algo_name, segment_idx, exec_time)
+                break
+            rate.sleep()
 
-        rospy.loginfo(
-            "[%s] Segment %d: Robot arrived | execution_time=%.2fs",
-            tracker["algorithm"], segment, exec_time
-        )
+    rospy.loginfo("[%s] All segments completed.", algo_name)
 
-        # Next segment starts now
-        tracker["nav_start_time"] = arrival_time
-        tracker["current_goal_idx"] += 1
+
+def update_execution_time_in_csv(algorithm, segment, exec_time_s):
+    """Update the execution_time_s column for a given algorithm/segment row."""
+    rows = []
+    with open(METRICS_FILE, "r") as f:
+        rows = list(csv.reader(f))
+
+    for row in rows[1:]:
+        if row[0] == algorithm and int(row[1]) == segment:
+            row[6] = round(exec_time_s, 4)
+            break
+
+    with open(METRICS_FILE, "w") as f:
+        csv.writer(f).writerows(rows)
 
 
 def init_metrics_csv():
@@ -80,33 +88,18 @@ def init_metrics_csv():
     rospy.loginfo("Metrics CSV initialised: %s", METRICS_FILE)
 
 
-def write_metric(algorithm, segment, start, goal, path_length, computation_time_s):
-    """Append one row of planning metrics to the CSV (execution_time filled later)."""
-    row = [algorithm, segment, start, goal, path_length, round(computation_time_s, 6), ""]
+def write_metric(algorithm, segment, start, goal, path_length, computation_time_s, execution_time_s=None):
+    """Append one row of metrics to the CSV and log to ROS."""
+    exec_str = round(execution_time_s, 4) if execution_time_s is not None else ""
+    row = [algorithm, segment, start, goal, path_length, round(computation_time_s, 6), exec_str]
     with open(METRICS_FILE, "a") as f:
         writer = csv.writer(f)
         writer.writerow(row)
+    exec_log = "%.2fs" % execution_time_s if execution_time_s is not None else "N/A"
     rospy.loginfo(
-        "[%s] Segment %d (%d -> %d) | path_length=%d | comp_time=%.4fs",
-        algorithm, segment, start, goal, path_length, computation_time_s
+        "[%s] Segment %d (%d -> %d) | path_length=%d | comp_time=%.4fs | exec_time=%s",
+        algorithm, segment, start, goal, path_length, computation_time_s, exec_log
     )
-
-
-def append_execution_time(algorithm, segment, exec_time_s):
-    """Update the CSV row for the given algorithm/segment with execution time."""
-    rows = []
-    with open(METRICS_FILE, "r") as f:
-        reader = csv.reader(f)
-        rows = list(reader)
-
-    for row in rows[1:]:  # skip header
-        if row[0] == algorithm and int(row[1]) == segment:
-            row[6] = round(exec_time_s, 4)
-            break
-
-    with open(METRICS_FILE, "w") as f:
-        writer = csv.writer(f)
-        writer.writerows(rows)
 
 
 def run_algorithm(algo_func, algo_name, start, goals, width, height, costmap, resolution, origin):
@@ -156,8 +149,7 @@ def make_plan(req) -> PathPlanningPluginResponse:
     resolution = 0.05
     origin: list[int] = [-3.312564, -3.270421, 0.000000]
 
-    import numpy as np
-    import matplotlib.pyplot as plt
+    rospy.loginfo(f"//// {goal=}")
 
     def show_maze_with_point(pixel_list, width, height, point_index):
         """
@@ -195,11 +187,10 @@ def make_plan(req) -> PathPlanningPluginResponse:
 
 
     goals = [
-        goal
-        # 17506,
-        # 2222,
-        # 1791,
-        # 16999,
+        2127,
+        2222,
+        1791,
+        16999,
     ]
     init_metrics_csv()
 
@@ -227,15 +218,14 @@ def make_plan(req) -> PathPlanningPluginResponse:
         # Use the last algorithm's path as the one sent to move_base
         final_path = path
 
+    # Start execution time tracking in a background thread
     last_algo_name = algorithms[-1][0]
-    goals_world = [grid_to_world(g, width, resolution, origin) for g in goals]
-    execution_tracker["goals_world"] = goals_world
-    execution_tracker["algorithm"] = last_algo_name
-    execution_tracker["nav_start_time"] = rospy.Time.now()
-    execution_tracker["current_goal_idx"] = 0
-    execution_tracker["resolution"] = resolution
-    execution_tracker["origin"] = origin
-    execution_tracker["width"] = width
+    tracker_thread = threading.Thread(
+        target=track_execution_times,
+        args=(last_algo_name, goals, width, resolution, origin),
+        daemon=True,
+    )
+    tracker_thread.start()
     rospy.loginfo("Execution time tracking started for %d goals", len(goals))
 
     resp = PathPlanningPluginResponse()
@@ -255,7 +245,6 @@ if __name__ == "__main__":
         "/move_base/SrvClientPlugin/make_plan", PathPlanningPlugin, make_plan
     )
     cmd_vel = rospy.Publisher("/cmd_vel", Twist, queue_size=5)
-    rospy.Subscriber("/amcl_pose", PoseWithCovarianceStamped, amcl_pose_callback)
     rospy.on_shutdown(clean_shutdown)
 
     while not rospy.core.is_shutdown():
