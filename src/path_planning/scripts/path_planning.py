@@ -9,6 +9,8 @@ import os
 from pp_msgs.srv import PathPlanningPlugin, PathPlanningPluginResponse
 from geometry_msgs.msg import Twist, PoseWithCovarianceStamped
 from gridviz import GridViz
+import numpy as np
+import matplotlib.pyplot as plt
 
 # --- Performance metrics CSV setup ---
 METRICS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "metrics")
@@ -156,8 +158,7 @@ def make_plan(req) -> PathPlanningPluginResponse:
     resolution = 0.05
     origin: list[int] = [-3.312564, -3.270421, 0.000000]
 
-    import numpy as np
-    import matplotlib.pyplot as plt
+    rospy.loginfo(f"{goal=}")
 
     def show_maze_with_point(pixel_list, width, height, point_index):
         """
@@ -195,11 +196,10 @@ def make_plan(req) -> PathPlanningPluginResponse:
 
 
     goals = [
-        goal
-        # 17506,
-        # 2222,
-        # 1791,
-        # 16999,
+        2127,
+        2222,
+        1791,
+        16999,
     ]
     init_metrics_csv()
 

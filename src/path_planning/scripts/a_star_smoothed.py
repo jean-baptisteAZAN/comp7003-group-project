@@ -62,7 +62,7 @@ def a_star_smoothed(
             )  # call function to get path by using the parent cells
 
         all_neighbors = find_neighbors(
-            current.pos, width, height, costmap, 5
+            current.pos, width, height, costmap, 1
         )  # not sure about the last param
 
         for neighbor in all_neighbors:
