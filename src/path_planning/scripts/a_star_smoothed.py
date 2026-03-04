@@ -3,12 +3,15 @@ import math
 from algorithms.neighbors import find_neighbors
 import rospy
 from gridviz import GridViz
-from a_star import *
+from a_star import Cell, find_lowest_f, euclidean_dist, get_path
+
+MAX_LINEAR_VELOCITY = 0.22
+MAX_ANGULAR_VELOCITY = 2.84
 
 
-def calculate_angle(current : Cell, neighbor_pos : int, width):
+def calculate_angle(current: Cell, neighbor_pos: int, width):
     previous = current.parent
-    if previous == None: 
+    if previous is None:
         return 0
 
     previous_x, previous_y = previous.pos % width, previous.pos // width
@@ -21,20 +24,19 @@ def calculate_angle(current : Cell, neighbor_pos : int, width):
     dot = ux * vx + uy * vy
     cross = ux * vy - uy * vx
 
-    return math.atan2(cross, dot) #for a signed angle
+    return math.atan2(cross, dot)  # for a signed angle
 
 
 def cost_function(distance, angle):
-    max_linear_velocity = 0.22
-    max_angular_velocity = 2.84
-
-    time_trans = distance / max_linear_velocity
-    time_rot = abs(angle) / max_angular_velocity
+    time_trans = distance / MAX_LINEAR_VELOCITY
+    time_rot = abs(angle) / MAX_ANGULAR_VELOCITY
 
     return time_trans + time_rot
 
 
-def a_star_smoothed(start, goal, width, height, costmap, resolution, origin, grid_visualisation):
+def a_star_smoothed(
+    start, goal, width, height, costmap, resolution, origin, grid_visualisation
+):
     rospy.loginfo("In Astar")
     rospy.loginfo(f"{start=}")
     rospy.loginfo(f"{resolution=}")
@@ -48,7 +50,6 @@ def a_star_smoothed(start, goal, width, height, costmap, resolution, origin, gri
     to_visit = [start_cell]  # array of cells not position
     visited = []
 
-
     while to_visit:
         current_index = find_lowest_f(to_visit)
         current = to_visit.pop(current_index)
@@ -56,12 +57,13 @@ def a_star_smoothed(start, goal, width, height, costmap, resolution, origin, gri
         grid_visualisation.set_color(current.pos, "pale yellow")
 
         if current.pos == goal:
-            return get_path(current)# call function to get path by using the parent cells
+            return get_path(
+                current
+            )  # call function to get path by using the parent cells
 
         all_neighbors = find_neighbors(
             current.pos, width, height, costmap, 5
         )  # not sure about the last param
-        
 
         for neighbor in all_neighbors:
             # check if neighbor in visited, if yes, skip (continue)
@@ -76,8 +78,12 @@ def a_star_smoothed(start, goal, width, height, costmap, resolution, origin, gri
             # check if neighbor already in to_visit, if yes, check if g_score is smaller, if yes, update cell
             # if not, create new Cell corresponding to neighbor and add it to to_visit
             angle = calculate_angle(current, neighbor[0], width)
-            new_g_score = current.g + cost_function(neighbor[1], angle) + angle #add travel time as cost + penalty
-            new_f_score = new_g_score + euclidean_dist(neighbor[0], goal, width)
+            new_g_score = (
+                current.g + cost_function(neighbor[1], angle) + angle
+            )  # add travel time as cost + penalty
+            new_f_score = new_g_score + (
+                euclidean_dist(neighbor[0], goal, width) / MAX_LINEAR_VELOCITY
+            )
 
             in_to_visit = 0
             neighbor_cell: Cell = None
@@ -95,7 +101,7 @@ def a_star_smoothed(start, goal, width, height, costmap, resolution, origin, gri
                 grid_visualisation.set_color(neighbor[0], "orange")
                 neighbor_cell = Cell(neighbor[0], new_g_score, new_f_score, current)
                 to_visit.append(neighbor_cell)
-                
+
     rospy.loginfo("END")
     rospy.loginfo(f"{len(to_visit)=}")
     rospy.loginfo(f"{len(visited)=}")

@@ -156,22 +156,61 @@ def make_plan(req) -> PathPlanningPluginResponse:
     resolution = 0.05
     origin: list[int] = [-3.312564, -3.270421, 0.000000]
 
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    def show_maze_with_point(pixel_list, width, height, point_index):
+        """
+        Displays the maze and marks a specific index with a red dot.
+        """
+        # 1. Convert list to NumPy array
+        pixel_array = np.array(pixel_list, dtype=np.float32)
+
+        # 2. CLEANUP: Fix the 'noise' lines
+        # If -1 (unknown) is becoming white, set it to 127 (gray) or 0 (black)
+        pixel_array[pixel_array == -1] = 0 
+        pixel_array[pixel_array == 255] = 0 # Often costmaps use 255 for unknown
+
+        # 3. Reshape - MUST be (height, width) to avoid shearing lines
+        image_matrix = pixel_array.reshape((height, width))
+
+        # 4. Calculate X and Y from the 1D index
+        x = point_index % width
+        y = point_index // width
+
+        # 5. Plotting
+        plt.figure(figsize=(8, 8))
+        
+        # Use origin='lower' so (0,0) is the bottom-left, matching ROS convention
+        plt.imshow(image_matrix, cmap='gray', origin='lower')
+        
+        # Overlay the red point
+        plt.scatter(x, y, color='red', s=50, label=f'Point at {point_index}')
+        
+        plt.title(f"Maze Visualization ({width}x{height})")
+        plt.legend()
+        plt.axis('on') # Keep axis on to verify coordinates
+        plt.show()
+    # show_maze_with_point(costmap, width=width, height=height, point_index=start)
+
+
     goals = [
-        17506,
-        2222,
-        1791,
-        16999,
+        goal
+        # 17506,
+        # 2222,
+        # 1791,
+        # 16999,
     ]
     init_metrics_csv()
 
     algo_param = rospy.get_param("~algorithm", "standard")
     available_algorithms = {
         "standard": ("standard", a_star),
-        "enhanced": ("enhanced", a_star_smoothed),
+        "smoothed": ("smoothed", a_star_smoothed),
     }
 
     if algo_param == "both":
-        algorithms = [available_algorithms["standard"], available_algorithms["enhanced"]]
+        algorithms = [available_algorithms["standard"], available_algorithms["smoothed"]]
     elif algo_param in available_algorithms:
         algorithms = [available_algorithms[algo_param]]
     else:
