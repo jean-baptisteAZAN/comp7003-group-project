@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 from a_star import a_star
-from a_star_enhanced import a_star_enhanced
+from a_star_enhanced import a_star_smoothed
 import math
 import rospy
 import csv
@@ -151,7 +151,7 @@ def make_plan(req) -> PathPlanningPluginResponse:
     # number of rows in the occupancy grid
     height: int = req.height
     start: int = req.start
-    # goal: int = req.goal
+    goal: int = req.goal
     # side of each grid map square in meters
     resolution = 0.05
     origin: list[int] = [-3.312564, -3.270421, 0.000000]
@@ -167,7 +167,7 @@ def make_plan(req) -> PathPlanningPluginResponse:
     algo_param = rospy.get_param("~algorithm", "standard")
     available_algorithms = {
         "standard": ("standard", a_star),
-        "enhanced": ("enhanced", a_star_enhanced),
+        "enhanced": ("enhanced", a_star_smoothed),
     }
 
     if algo_param == "both":

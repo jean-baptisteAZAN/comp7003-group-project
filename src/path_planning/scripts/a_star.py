@@ -5,7 +5,7 @@ import rospy
 from gridviz import GridViz
 
 class Cell:
-    def __init__(self, pos: int, g: int, f: int, parent: Cell):
+    def __init__(self, pos: int, g, f, parent: Cell):
         self.pos = pos
         self.g = g
         self.f = f
@@ -54,10 +54,9 @@ def a_star(start, goal, width, height, costmap, resolution, origin, grid_visuali
     rospy.loginfo(f"{height=}")
     rospy.loginfo(f"{len(costmap)=}")
     rospy.loginfo(f"{len([cell for cell in costmap if cell <= 150])=}")
-    start_cell = Cell(start, 0, euclidean_dist(0, goal, width), None)
+    start_cell = Cell(start, 0, euclidean_dist(start, goal, width), None)
     to_visit = [start_cell]  # array of cells not position
-    visited = []
-
+    visited = set()
     # import numpy as np
     # import matplotlib.pyplot as plt
 
@@ -98,25 +97,20 @@ def a_star(start, goal, width, height, costmap, resolution, origin, grid_visuali
     while to_visit:
         current_index = find_lowest_f(to_visit)
         current = to_visit.pop(current_index)
-        visited.append(current)
+        visited.add(current.pos)
         grid_visualisation.set_color(current.pos, "pale yellow")
 
         if current.pos == goal:
             return get_path(current)# call function to get path by using the parent cells
 
         all_neighbors = find_neighbors(
-            current.pos, width, height, costmap, 5
-        )  # not sure about the last param
+            current.pos, width, height, costmap, 1
+        ) #1 for the last param because otherwise, the penalty related to the costmap would be too impactful
         
 
         for neighbor in all_neighbors:
             # check if neighbor in visited, if yes, skip (continue)
-            in_visited = 0
-            for cell in visited:
-                if neighbor[0] == cell.pos:
-                    in_visited = 1
-
-            if in_visited:
+            if neighbor[0] in visited:
                 continue
 
             # check if neighbor already in to_visit, if yes, check if g_score is smaller, if yes, update cell
