@@ -129,7 +129,6 @@ def run_algorithm(algo_func, algo_name, start, goals, width, height, costmap, re
             write_metric(algo_name, segment_idx, current_start, goal, len(path), computation_time)
             final_path.extend(path)
             rospy.loginfo("[%s] Segment %d: Path sent to navigation stack", algo_name, segment_idx)
-
     return final_path
 
 
@@ -187,10 +186,10 @@ def make_plan(req) -> PathPlanningPluginResponse:
 
 
     goals = [
-        2127,
-        2222,
-        1791,
-        16999,
+        5717,
+        8436,
+        13079,
+        17625
     ]
     init_metrics_csv()
 
@@ -216,7 +215,7 @@ def make_plan(req) -> PathPlanningPluginResponse:
         rospy.loginfo("=" * 60)
         path = run_algorithm(algo_func, algo_name, start, goals, width, height, costmap, resolution, origin)
         # Use the last algorithm's path as the one sent to move_base
-        final_path = path
+        final_path.extend(path)
 
     # Start execution time tracking in a background thread
     last_algo_name = algorithms[-1][0]
