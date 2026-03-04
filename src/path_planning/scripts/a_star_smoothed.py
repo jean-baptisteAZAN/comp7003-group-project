@@ -24,12 +24,12 @@ def calculate_angle(current: Cell, neighbor_pos: int, width):
     dot = ux * vx + uy * vy
     cross = ux * vy - uy * vx
 
-    return math.atan2(cross, dot)  # for a signed angle
+    return abs(math.atan2(cross, dot))  # for a signed angle, then we get the absolute value
 
 
 def cost_function(distance, angle):
     time_trans = distance / MAX_LINEAR_VELOCITY
-    time_rot = abs(angle) / MAX_ANGULAR_VELOCITY
+    time_rot = angle / MAX_ANGULAR_VELOCITY
 
     return time_trans + time_rot
 
@@ -46,14 +46,14 @@ def a_star_smoothed(
     rospy.loginfo(f"{height=}")
     rospy.loginfo(f"{len(costmap)=}")
     rospy.loginfo(f"{len([cell for cell in costmap if cell <= 150])=}")
-    start_cell = Cell(start, 0, euclidean_dist(0, goal, width), None)
+    start_cell = Cell(start, 0, euclidean_dist(start, goal, width), None)
     to_visit = [start_cell]  # array of cells not position
-    visited = []
+    visited = set()
 
     while to_visit:
         current_index = find_lowest_f(to_visit)
         current = to_visit.pop(current_index)
-        visited.append(current)
+        visited.add(current.pos)
         grid_visualisation.set_color(current.pos, "pale yellow")
 
         if current.pos == goal:
@@ -62,28 +62,24 @@ def a_star_smoothed(
             )  # call function to get path by using the parent cells
 
         all_neighbors = find_neighbors(
-            current.pos, width, height, costmap, 5
-        )  # not sure about the last param
-
+            current.pos, width, height, costmap, 1
+        ) #1 for the last param because otherwise, the penalty related to the costmap would be too impactful
+        
         for neighbor in all_neighbors:
             # check if neighbor in visited, if yes, skip (continue)
-            in_visited = 0
-            for cell in visited:
-                if neighbor[0] == cell.pos:
-                    in_visited = 1
-
-            if in_visited:
+            if neighbor[0] in visited:
                 continue
 
             # check if neighbor already in to_visit, if yes, check if g_score is smaller, if yes, update cell
             # if not, create new Cell corresponding to neighbor and add it to to_visit
             angle = calculate_angle(current, neighbor[0], width)
+            time_cost = cost_function(neighbor[1], angle)
+            new_h_score = euclidean_dist(neighbor[0], goal, width) / MAX_LINEAR_VELOCITY
+
             new_g_score = (
-                current.g + cost_function(neighbor[1], angle) + angle
+                current.g + time_cost + angle
             )  # add travel time as cost + penalty
-            new_f_score = new_g_score + (
-                euclidean_dist(neighbor[0], goal, width) / MAX_LINEAR_VELOCITY
-            )
+            new_f_score = new_g_score + new_h_score
 
             in_to_visit = 0
             neighbor_cell: Cell = None

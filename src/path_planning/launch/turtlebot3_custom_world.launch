@@ -34,6 +34,13 @@
   <!-- Add AMCL here, so you can estimate the robot's path on first launch. -->
   <node pkg="amcl" type="amcl" name="amcl" output="screen">
     <param name="use_map_topic" value="true" />
+    
+    <param name="initial_pose_x" value="2.752904563082006"/>
+    <param name="initial_pose_y" value="-2.754354477828065"/>
+    <param name="initial_pose_a" value="0"/>
+    <param name="initial_cov_xx" value="0.24765850579898974"/> 
+    <param name="initial_cov_yy" value="0.24290098927393622"/>
+    <param name="initial_cov_aa" value="0.06716567243247021"/> 
   </node>
   <!-- Start service server that responds with a plan for global path planning -->
   <!-- algorithm: "standard", "smoothed", or "both" -->

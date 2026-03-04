@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 from a_star import a_star
-from a_star_enhanced import a_star_smoothed
+from a_star_smoothed import a_star_smoothed
 import math
 import rospy
 import csv
