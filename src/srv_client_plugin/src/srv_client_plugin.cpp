@@ -116,11 +116,6 @@ namespace srv_client_plugin
       /* Process plan response */
       if (index_plan.size())
       {
-        // insert start node into plan response
-        index_plan.insert(index_plan.begin(), start_index);
-        // insert goal node into plan response
-        index_plan.push_back(goal_index);
-
         for (int p : index_plan)
         {
           int x, y;
@@ -140,8 +135,6 @@ namespace srv_client_plugin
 
           plan.push_back(position);
         }
-
-        plan.push_back(goal);
 
         // Publish the path for visualisation
         publishPlan(plan);
