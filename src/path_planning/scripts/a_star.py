@@ -2,7 +2,7 @@ from __future__ import annotations
 import math
 from algorithms.neighbors import find_neighbors
 import rospy
-from gridviz import GridViz
+
 
 class Cell:
     def __init__(self, pos: int, g, f, parent: Cell):
@@ -36,13 +36,14 @@ def get_path(last_cell):
     path = []
     path.append(last_cell.pos)
 
-    while last_cell.parent is not  None:
+    while last_cell.parent is not None:
         last_cell = last_cell.parent
         path.append(last_cell.pos)
 
     path.reverse()
     rospy.loginfo(path)
     return path
+
 
 def a_star(start, goal, width, height, costmap, resolution, origin, grid_visualisation):
     rospy.loginfo("In Astar")
@@ -65,12 +66,13 @@ def a_star(start, goal, width, height, costmap, resolution, origin, grid_visuali
         grid_visualisation.set_color(current.pos, "pale yellow")
 
         if current.pos == goal:
-            return get_path(current)# call function to get path by using the parent cells
+            return get_path(
+                current
+            )  # call function to get path by using the parent cells
 
         all_neighbors = find_neighbors(
             current.pos, width, height, costmap, 1
-        ) #1 for the last param because otherwise, the penalty related to the costmap would be too impactful
-        
+        )  # 1 for the last param because otherwise, the penalty related to the costmap would be too impactful
 
         for neighbor in all_neighbors:
             # check if neighbor in visited, if yes, skip (continue)
@@ -98,7 +100,7 @@ def a_star(start, goal, width, height, costmap, resolution, origin, grid_visuali
                 grid_visualisation.set_color(neighbor[0], "orange")
                 neighbor_cell = Cell(neighbor[0], new_g_score, new_f_score, current)
                 to_visit.append(neighbor_cell)
-                
+
     rospy.loginfo("END")
     rospy.loginfo(f"{len(to_visit)=}")
     rospy.loginfo(f"{len(visited)=}")
