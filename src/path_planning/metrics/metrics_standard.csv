@@ -1,5 +1,5 @@
 algorithm,segment,start,goal,path_length,computation_time_s,execution_time_s
-standard,1,1491,5717,32,3.221,11.218
-standard,2,5717,8436,22,1.422,6.985
-standard,3,8436,13079,35,2.563,10.134
-standard,4,13079,17625,34,2.814,9.058
+standard,1,1491,5717,32,3.139,15.142
+standard,2,5717,8436,22,1.62,6.993
+standard,3,8436,13079,35,2.694,10.299
+standard,4,13079,17625,34,2.836,8.81

@@ -1,5 +1,5 @@
 algorithm,segment,start,goal,path_length,computation_time_s,execution_time_s
-smoothed,1,1491,5717,32,4.745,14.021
-smoothed,2,5717,8436,22,2.229,7.004
-smoothed,3,8436,13079,35,3.708,10.094
-smoothed,4,13079,17625,34,4.996,9.196
+smoothed,1,1491,5717,3,4.874,12.059
+smoothed,2,5717,8436,2,2.508,7.161
+smoothed,3,8436,13079,3,3.926,9.683
+smoothed,4,13079,17625,2,4.781,8.731
