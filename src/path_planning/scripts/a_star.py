@@ -2,7 +2,7 @@ from __future__ import annotations
 import math
 from algorithms.neighbors import find_neighbors
 import rospy
-from gridviz import GridViz
+
 
 class Cell:
     def __init__(self, pos: int, g, f, parent: Cell):
@@ -36,13 +36,14 @@ def get_path(last_cell):
     path = []
     path.append(last_cell.pos)
 
-    while last_cell.parent is not  None:
+    while last_cell.parent is not None:
         last_cell = last_cell.parent
         path.append(last_cell.pos)
 
     path.reverse()
     rospy.loginfo(path)
     return path
+
 
 def a_star(start, goal, width, height, costmap, resolution, origin, grid_visualisation):
     rospy.loginfo("In Astar")
@@ -57,42 +58,6 @@ def a_star(start, goal, width, height, costmap, resolution, origin, grid_visuali
     start_cell = Cell(start, 0, euclidean_dist(start, goal, width), None)
     to_visit = [start_cell]  # array of cells not position
     visited = set()
-    # import numpy as np
-    # import matplotlib.pyplot as plt
-
-    # def show_maze_with_point(pixel_list, width, height, point_index):
-    #     """
-    #     Displays the maze and marks a specific index with a red dot.
-    #     """
-    #     # 1. Convert list to NumPy array
-    #     pixel_array = np.array(pixel_list, dtype=np.float32)
-
-    #     # 2. CLEANUP: Fix the 'noise' lines
-    #     # If -1 (unknown) is becoming white, set it to 127 (gray) or 0 (black)
-    #     pixel_array[pixel_array == -1] = 0 
-    #     pixel_array[pixel_array == 255] = 0 # Often costmaps use 255 for unknown
-
-    #     # 3. Reshape - MUST be (height, width) to avoid shearing lines
-    #     image_matrix = pixel_array.reshape((height, width))
-
-    #     # 4. Calculate X and Y from the 1D index
-    #     x = point_index % width
-    #     y = point_index // width
-
-    #     # 5. Plotting
-    #     plt.figure(figsize=(8, 8))
-        
-    #     # Use origin='lower' so (0,0) is the bottom-left, matching ROS convention
-    #     plt.imshow(image_matrix, cmap='gray', origin='lower')
-        
-    #     # Overlay the red point
-    #     plt.scatter(x, y, color='red', s=50, label=f'Point at {point_index}')
-        
-    #     plt.title(f"Maze Visualization ({width}x{height})")
-    #     plt.legend()
-    #     plt.axis('on') # Keep axis on to verify coordinates
-    #     plt.show()
-    # show_maze_with_point(costmap, width=width, height=height, point_index=start)
 
     while to_visit:
         current_index = find_lowest_f(to_visit)
@@ -101,12 +66,13 @@ def a_star(start, goal, width, height, costmap, resolution, origin, grid_visuali
         grid_visualisation.set_color(current.pos, "pale yellow")
 
         if current.pos == goal:
-            return get_path(current)# call function to get path by using the parent cells
+            return get_path(
+                current
+            )  # call function to get path by using the parent cells
 
         all_neighbors = find_neighbors(
             current.pos, width, height, costmap, 1
-        ) #1 for the last param because otherwise, the penalty related to the costmap would be too impactful
-        
+        )  # 1 for the last param because otherwise, the penalty related to the costmap would be too impactful
 
         for neighbor in all_neighbors:
             # check if neighbor in visited, if yes, skip (continue)
@@ -134,7 +100,7 @@ def a_star(start, goal, width, height, costmap, resolution, origin, grid_visuali
                 grid_visualisation.set_color(neighbor[0], "orange")
                 neighbor_cell = Cell(neighbor[0], new_g_score, new_f_score, current)
                 to_visit.append(neighbor_cell)
-                
+
     rospy.loginfo("END")
     rospy.loginfo(f"{len(to_visit)=}")
     rospy.loginfo(f"{len(visited)=}")

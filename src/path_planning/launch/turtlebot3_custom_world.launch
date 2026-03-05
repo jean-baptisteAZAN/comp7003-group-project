@@ -43,7 +43,7 @@
     <param name="initial_cov_aa" value="0.06716567243247021"/> 
   </node>
   <!-- Start service server that responds with a plan for global path planning -->
-  <!-- algorithm: "standard", "smoothed", or "both" -->
+  <!-- algorithm: "standard" or "smoothed" -->
   <arg name="algorithm" default="standard"/>
   <node pkg="path_planning" name="path_planner" type="path_planning.py" output="screen">
     <param name="algorithm" value="$(arg algorithm)"/>

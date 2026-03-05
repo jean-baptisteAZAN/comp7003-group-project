@@ -2,7 +2,6 @@ from __future__ import annotations
 import math
 from algorithms.neighbors import find_neighbors
 import rospy
-from gridviz import GridViz
 from a_star import Cell, find_lowest_f, euclidean_dist, get_path
 
 MAX_LINEAR_VELOCITY = 0.22
@@ -24,7 +23,9 @@ def calculate_angle(current: Cell, neighbor_pos: int, width):
     dot = ux * vx + uy * vy
     cross = ux * vy - uy * vx
 
-    return abs(math.atan2(cross, dot))  # for a signed angle, then we get the absolute value
+    return abs(
+        math.atan2(cross, dot)
+    )  # for a signed angle, then we get the absolute value
 
 
 def cost_function(distance, angle):
@@ -63,8 +64,8 @@ def a_star_smoothed(
 
         all_neighbors = find_neighbors(
             current.pos, width, height, costmap, 1
-        ) #1 for the last param because otherwise, the penalty related to the costmap would be too impactful
-        
+        )  # 1 for the last param because otherwise, the penalty related to the costmap would be too impactful
+
         for neighbor in all_neighbors:
             # check if neighbor in visited, if yes, skip (continue)
             if neighbor[0] in visited:
