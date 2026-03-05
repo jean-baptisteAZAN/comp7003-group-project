@@ -14,7 +14,7 @@ from gridviz import GridViz
 import numpy as np
 import matplotlib.pyplot as plt
 
-# --- Performance metrics CSV setup ---
+# Performance metrics CSV setup
 METRICS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "metrics")
 CSV_HEADER = ["algorithm", "segment", "start", "goal", "path_length", "computation_time_s", "execution_time_s"]
 
@@ -189,6 +189,7 @@ def make_plan(req) -> PathPlanningPluginResponse:
         plt.legend()
         plt.axis('on') # Keep axis on to verify coordinates
         plt.show()
+    # This function was used to debug our costmap when the AMCL was not aligned
     # show_maze_with_point(costmap, width=width, height=height, point_index=start)
 
 
@@ -198,42 +199,38 @@ def make_plan(req) -> PathPlanningPluginResponse:
         13079,
         17625
     ]
+    # This goals are indexes, we got those values by logging req.goal and clicking with 2D Nav Goal in Rviz
     algo_param = rospy.get_param("~algorithm", "standard")
     available_algorithms = {
         "standard": ("standard", a_star),
         "smoothed": ("smoothed", a_star_smoothed),
     }
 
-    if algo_param == "both":
-        algorithms = [available_algorithms["standard"], available_algorithms["smoothed"]]
-    elif algo_param in available_algorithms:
-        algorithms = [available_algorithms[algo_param]]
+    if algo_param in available_algorithms:
+        algo_name, algo_func = available_algorithms[algo_param]
     else:
-        rospy.logwarn("Unknown algorithm '%s', defaulting to standard", algo_param)
-        algorithms = [available_algorithms["standard"]]
+        rospy.logwarn(f"Unknown algorithm '{algo_param}', defaulting to standard", )
+        algo_name, algo_func = available_algorithms["standard"]
 
-    rospy.loginfo("Selected algorithm(s): %s", [a[0] for a in algorithms])
-    final_path = []
-    for algo_name, algo_func in algorithms:
-        init_metrics_csv(algo_name)
-        rospy.loginfo("=" * 60)
-        rospy.loginfo("Running algorithm: %s", algo_name)
-        rospy.loginfo("=" * 60)
-        path = run_algorithm(algo_func, algo_name, start, goals, width, height, costmap, resolution, origin)
-        final_path.extend(path)
+    rospy.loginfo(f"Selected algorithm: {algo_name}")
+
+    init_metrics_csv(algo_name)
+    rospy.loginfo("=" * 60)
+    rospy.loginfo(f"Running algorithm: {algo_name}")
+    rospy.loginfo("=" * 60)
+    path = run_algorithm(algo_func, algo_name, start, goals, width, height, costmap, resolution, origin)
 
     # Start execution time tracking in a background thread
-    last_algo_name = algorithms[-1][0]
     tracker_thread = threading.Thread(
         target=track_execution_times,
-        args=(last_algo_name, goals, width, resolution, origin),
+        args=(algo_name, goals, width, resolution, origin),
         daemon=True,
     )
     tracker_thread.start()
-    rospy.loginfo("Execution time tracking started for %d goals", len(goals))
+    rospy.loginfo(f"Execution time tracking started for {len(goals)} goals")
 
     resp = PathPlanningPluginResponse()
-    resp.plan = final_path
+    resp.plan = path
     return resp
 
 
