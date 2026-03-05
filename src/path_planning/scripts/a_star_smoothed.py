@@ -35,6 +35,78 @@ def cost_function(distance, angle):
     return time_trans + time_rot
 
 
+
+def bresenham_cells(start, end, width):
+    # This algorithm returns the list of cells between 2 cells
+
+    start_x, start_y = start % width, start // width
+    end_x, end_y = end % width, end // width
+
+    traversed_cells = []
+
+    delta_x = abs(end_x - start_x)
+    delta_y = abs(end_y - start_y)
+
+    # direction
+    step_x = 1 if end_x >= start_x else -1
+    step_y = 1 if end_y >= start_y else -1
+
+    current_x, current_y = start_x, start_y
+
+    # if the line is more horizontal
+    if delta_x >= delta_y:
+        error_accumulator = delta_x // 2
+
+        while current_x != end_x:
+            traversed_cells.append(current_x + current_y * width)
+            error_accumulator -= delta_y
+            if error_accumulator < 0:
+                #if we are too far away in the y axis, we add a step in this direction
+                current_y += step_y
+                error_accumulator += delta_x
+
+            current_x += step_x
+
+    # if the line is more vertical
+    else:
+        error_accumulator = delta_y // 2
+
+        while current_y != end_y:
+            traversed_cells.append(current_x+ current_y * width)
+
+            error_accumulator -= delta_x
+            if error_accumulator < 0:
+                current_x += step_x
+                error_accumulator += delta_y
+
+            current_y += step_y
+
+    traversed_cells.append(end_x + end_y * width)
+    return traversed_cells
+
+def path_smoothing(path, costmap, width):
+    smoothed_path = [path[0]]
+
+    ref = path[0]
+    for i in range(2, len(path) - 1):
+        next_point = path[i]
+        accessible = True
+        for cell in bresenham_cells(ref, next_point, width):
+            if costmap[cell] > 150:
+                accessible = False
+                break
+        if accessible == False:
+            smoothed_path.append(path[i - 1])
+            ref = path[i - 1]
+
+    
+    smoothed_path.append(path[-1])
+
+    return smoothed_path
+
+
+
+
 def a_star_smoothed(
     start, goal, width, height, costmap, resolution, origin, grid_visualisation
 ):
@@ -58,9 +130,11 @@ def a_star_smoothed(
         grid_visualisation.set_color(current.pos, "pale yellow")
 
         if current.pos == goal:
-            return get_path(
-                current
-            )  # call function to get path by using the parent cells
+            path = get_path(current) # call function to get path by using the parent cells
+            rospy.loginfo(f"{len(path)=}")
+            final_path = path_smoothing(path, costmap, width) # line of sight smoothing
+            rospy.loginfo(f"{len(final_path)=}")
+            return final_path
 
         all_neighbors = find_neighbors(
             current.pos, width, height, costmap, 1
