@@ -16,8 +16,12 @@ import matplotlib.pyplot as plt
 
 # --- Performance metrics CSV setup ---
 METRICS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "metrics")
-METRICS_FILE = os.path.join(METRICS_DIR, "metrics.csv")
 CSV_HEADER = ["algorithm", "segment", "start", "goal", "path_length", "computation_time_s", "execution_time_s"]
+
+
+def metrics_file_for(algo_name):
+    """Return the CSV path for a given algorithm (e.g. metrics_standard.csv)."""
+    return os.path.join(METRICS_DIR, f"metrics_{algo_name}.csv")
 
 ARRIVAL_THRESHOLD = 0.3  # meters
 
@@ -65,8 +69,9 @@ def track_execution_times(algo_name, goals, width, resolution, origin):
 
 def update_execution_time_in_csv(algorithm, segment, exec_time_s):
     """Update the execution_time_s column for a given algorithm/segment row."""
+    filepath = metrics_file_for(algorithm)
     rows = []
-    with open(METRICS_FILE, "r") as f:
+    with open(filepath, "r") as f:
         rows = list(csv.reader(f))
 
     for row in rows[1:]:
@@ -74,25 +79,27 @@ def update_execution_time_in_csv(algorithm, segment, exec_time_s):
             row[6] = round(exec_time_s, 4)
             break
 
-    with open(METRICS_FILE, "w") as f:
+    with open(filepath, "w") as f:
         csv.writer(f).writerows(rows)
 
 
-def init_metrics_csv():
-    """Create metrics directory and CSV file with header if needed."""
+def init_metrics_csv(algo_name):
+    """Create metrics directory and CSV file with header for a given algorithm."""
     if not os.path.exists(METRICS_DIR):
         os.makedirs(METRICS_DIR)
-    with open(METRICS_FILE, "w") as f:
+    filepath = metrics_file_for(algo_name)
+    with open(filepath, "w") as f:
         writer = csv.writer(f)
         writer.writerow(CSV_HEADER)
-    rospy.loginfo("Metrics CSV initialised: %s", METRICS_FILE)
+    rospy.loginfo("Metrics CSV initialised: %s", filepath)
 
 
 def write_metric(algorithm, segment, start, goal, path_length, computation_time_s, execution_time_s=None):
     """Append one row of metrics to the CSV and log to ROS."""
     exec_str = round(execution_time_s, 4) if execution_time_s is not None else ""
     row = [algorithm, segment, start, goal, path_length, round(computation_time_s, 6), exec_str]
-    with open(METRICS_FILE, "a") as f:
+    filepath = metrics_file_for(algorithm)
+    with open(filepath, "a") as f:
         writer = csv.writer(f)
         writer.writerow(row)
     exec_log = "%.2fs" % execution_time_s if execution_time_s is not None else "N/A"
@@ -191,8 +198,6 @@ def make_plan(req) -> PathPlanningPluginResponse:
         13079,
         17625
     ]
-    init_metrics_csv()
-
     algo_param = rospy.get_param("~algorithm", "standard")
     available_algorithms = {
         "standard": ("standard", a_star),
@@ -210,11 +215,11 @@ def make_plan(req) -> PathPlanningPluginResponse:
     rospy.loginfo("Selected algorithm(s): %s", [a[0] for a in algorithms])
     final_path = []
     for algo_name, algo_func in algorithms:
+        init_metrics_csv(algo_name)
         rospy.loginfo("=" * 60)
         rospy.loginfo("Running algorithm: %s", algo_name)
         rospy.loginfo("=" * 60)
         path = run_algorithm(algo_func, algo_name, start, goals, width, height, costmap, resolution, origin)
-        # Use the last algorithm's path as the one sent to move_base
         final_path.extend(path)
 
     # Start execution time tracking in a background thread
